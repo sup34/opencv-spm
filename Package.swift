@@ -18,7 +18,7 @@ let package = Package(
     ],
     targets: [
         .binaryTarget(name: "opencv2",
-                      url: "https://github.com/sup34/opencv-spm/blob/main/opencv2.xcframework.zip",
+                      url: "https://filebin.net/jmfd9oelh9ilts7d/opencv2.xcframework.zip",
                       checksum: checksum),
         .target(
             name: "opencv2-dependencies",
