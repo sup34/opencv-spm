@@ -13,13 +13,13 @@ jobs:
         run: |
           sudo xcode-select -s /Applications/Xcode_15.2.app/Contents/Developer
 
-      - name: Setup CMake
+      - name: actions-setup-cmake
         uses: jwlawson/actions-setup-cmake@v1.13.1
         with:
           cmake-version: 3.28
 
       - name: Checkout SPM Repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
         with:
           path: opencv-spm
 
@@ -34,14 +34,16 @@ jobs:
         run: echo "VERSION=$(cat .version)" >> $GITHUB_OUTPUT
 
       - name: Checkout OpenCV
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
         with:
           repository: opencv/opencv
+          # Берем тег из .version — например "4.11.0"
           ref: refs/tags/${{ steps.get_version.outputs.VERSION }}
           path: opencv
 
+      # (Опционально) кеширование сборки
       - name: Cache build
-        uses: actions/cache@v4
+        uses: actions/cache@v3
         with:
           path: opencv/build
           key: ${{ runner.os }}-opencv-${{ steps.get_version.outputs.VERSION }}
@@ -53,14 +55,15 @@ jobs:
         env:
           IPHONEOS_DEPLOYMENT_TARGET: 12.0
           MACOSX_DEPLOYMENT_TARGET: 10.13
-          
-          CMAKE_ARGS: > 
-            -DCMAKE_BUILD_TYPE=Release 
-            -DCMAKE_C_FLAGS_RELEASE='-O3 -DNDEBUG' 
+    
+          CMAKE_ARGS: >
+            -DCMAKE_BUILD_TYPE=Release
+            -DCMAKE_C_FLAGS_RELEASE='-O3 -DNDEBUG'
             -DCMAKE_CXX_FLAGS_RELEASE='-O3 -DNDEBUG'
             -DENABLE_NEON=ON
             -DWITH_IPP=ON
             -DWITH_TBB=ON
+            -DBUILD_SHARED_LIBS=OFF
         run: |
           git apply $GITHUB_WORKSPACE/opencv-spm/patches/*.patch
 
@@ -68,9 +71,8 @@ jobs:
 
           python3 platforms/apple/build_xcframework.py \
             --iphoneos_archs=arm64 \
-            --visionos_archs=arm64 \
-            --visionsimulator_archs=arm64 \
             --disable-bitcode \
+            --build_only_staticlibs \
             --parallel=8 \
             -o build
 
@@ -79,8 +81,9 @@ jobs:
         run: zip -ry opencv2.xcframework.zip build/opencv2.xcframework
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: opencv2.xcframework.zip
           path: opencv/opencv2.xcframework.zip
           if-no-files-found: error
+
